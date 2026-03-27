@@ -84,18 +84,18 @@ window.CHALLENGES = [
     mode: "read",
     type: "multiple_choice_best_fix",
     title: "Handle missing tool output",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["none", "safe-access", "tool-output"],
     prompt: "Which option is the safest way to guard against a missing tool result before reading a field?",
     code: 'tool_result = None\n# need to read tool_result["status"] safely',
     options: [
-      'if tool_result is not None:\n    status = tool_result.get("status")',
+      'if tool_result is not None:\n    status = tool_result.get("status", "unknown")',
       'if tool_result:\n    status = tool_result["status"]',
       'status = tool_result["status"] or "unknown"',
       'status = tool_result.get["status"]'
     ],
     correctAnswer: 0,
-    explanation: "Checking `is not None` avoids failing on a missing object, and `get()` avoids KeyError for the field itself.",
+    explanation: "Checking `is not None` avoids failing on a missing object, and `get(..., \"unknown\")` gives a safe fallback if the field is missing too.",
     takeaway: "Guard the container first, then use safe field access when optional keys are possible."
   },
   {
@@ -122,7 +122,7 @@ window.CHALLENGES = [
     mode: "read",
     type: "multiple_choice_best_fix",
     title: "Required output keys",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["validation", "dict", "structured-output"],
     prompt: "Which check correctly verifies that both required keys exist in the model output?",
     code: 'result = {"answer": "42"}\nrequired = ["answer", "confidence"]',
@@ -190,14 +190,14 @@ window.CHALLENGES = [
     title: "Add an empty response guardrail",
     difficulty: "easy",
     tags: ["guardrails", "truthiness", "responses"],
-    prompt: "Replace the broken line with a safer check that catches empty strings and None.",
+    prompt: "Replace the broken line with a safer check when `response` should be text or None.",
     code: 'response = model_output.get("text")\n# replace the next line\nif response == None or response == "":\n    return {"status": "retry"}',
     acceptedAnswers: [
       'if not response:',
       "if response is None or response == '':",
       'if response is None or response == "":'
     ],
-    explanation: "`if not response:` is the compact guardrail here because both None and empty strings are falsy.",
+    explanation: "`if not response:` is the compact guardrail here because the value is expected to be either text or None, and both None and empty strings are falsy.",
     takeaway: "Truthiness checks can be great guardrails when empty strings should count as missing."
   },
   {
@@ -205,7 +205,7 @@ window.CHALLENGES = [
     mode: "debug",
     type: "multiple_choice_bug",
     title: "Missing fallback return",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["functions", "returns", "safe-access"],
     prompt: "What is the bug in this helper?",
     code: 'def get_confidence(result):\n    if "confidence" in result:\n        return result["confidence"]\n\nscore = get_confidence({})',
@@ -237,7 +237,7 @@ window.CHALLENGES = [
     mode: "debug",
     type: "multiple_choice_bug",
     title: "List or dict?",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["lists", "dict", "api-response"],
     prompt: "An API returned a list of messages. What is the bug?",
     code: 'messages = [\n    {"role": "assistant", "content": "done"}\n]\nprint(messages["content"])',
@@ -256,7 +256,7 @@ window.CHALLENGES = [
     mode: "debug",
     type: "multiple_choice_best_fix",
     title: "Handle malformed model JSON",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["json", "try-except", "guardrails"],
     prompt: "Which option is the best lightweight guardrail around parsing a model JSON string?",
     code: 'raw = model_output["json_text"]',
@@ -294,7 +294,7 @@ window.CHALLENGES = [
     mode: "debug",
     type: "one_line_patch",
     title: "Safely read tool status",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["tool-output", "safe-access", "dict"],
     prompt: "Replace the broken line so missing status falls back to unknown.",
     code: 'tool_result = {"payload": {"items": 3}}\n# replace the next line\nstatus = tool_result["status"]',
@@ -310,7 +310,7 @@ window.CHALLENGES = [
     mode: "debug",
     type: "multiple_choice_best_fix",
     title: "Read a config threshold",
-    difficulty: "medium",
+    difficulty: "hard",
     tags: ["config", "dict", "safe-access"],
     prompt: "Which snippet safely reads an optional threshold from config?",
     code: 'config = {"max_retries": 2}',
@@ -379,13 +379,13 @@ window.CHALLENGES = [
     title: "Patch a refusal guardrail",
     difficulty: "hard",
     tags: ["guardrails", "validation", "strings"],
-    prompt: "Replace the comment with a two-line patch that blocks empty or refuse labels.",
+    prompt: "Replace the comment with a two-line patch that blocks an empty string label or a refuse label.",
     code: 'label = result.get("label", "")\n# replace this comment\nreturn {"status": "ok"}',
     acceptedAnswers: [
       'if label.lower() in ["", "refuse"]:\n    return {"status": "blocked"}',
       "if label.lower() in ['', 'refuse']:\n    return {'status': 'blocked'}"
     ],
-    explanation: "The patch normalizes the label and blocks both explicit refusal labels and empty outputs.",
+    explanation: "The patch normalizes the label and blocks both explicit refusal labels and empty-string outputs.",
     takeaway: "Small guardrail patches often combine normalization with a narrow blocked set."
   },
   {
@@ -419,5 +419,406 @@ window.CHALLENGES = [
     ],
     explanation: "Nested get() calls with typed defaults keep the pipeline moving safely.",
     takeaway: "For nested optional data, chain `get()` with sensible default containers."
+  },
+  {
+    id: "read-json-null-to-none",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "JSON null becomes Python None",
+    difficulty: "easy",
+    tags: ["json", "parsing", "none"],
+    prompt: "What prints after parsing this model output?",
+    code: 'import json\n\nraw = \'{"answer": null}\'\ndata = json.loads(raw)\nprint(data["answer"])',
+    options: ['"null"', "None", '""', "Raises KeyError"],
+    correctAnswer: 1,
+    explanation: "In JSON, `null` maps to Python `None` when parsed with json.loads().",
+    takeaway: "Remember the JSON-to-Python type mapping when reasoning about structured outputs."
+  },
+  {
+    id: "read-direct-key-bug",
+    mode: "read",
+    type: "multiple_choice_bug",
+    title: "Optional field with direct access",
+    difficulty: "easy",
+    tags: ["dict", "optional-fields", "safe-access"],
+    prompt: "The score field is optional here. What is the main bug?",
+    code: 'result = {"label": "pass"}\nscore = result["score"]',
+    options: [
+      "It can raise KeyError when score is missing.",
+      "Dictionaries cannot store numeric fields.",
+      "score must be read with result.score.",
+      "Optional fields always become None automatically."
+    ],
+    correctAnswer: 0,
+    explanation: "Direct indexing assumes the key exists. Optional output fields should usually use get().",
+    takeaway: "Use `dict.get()` when optional structured-output fields may be absent."
+  },
+  {
+    id: "read-empty-dict-guardrail",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "Empty tool payload",
+    difficulty: "easy",
+    tags: ["truthiness", "dict", "tool-output"],
+    prompt: "What prints when the tool payload is an empty dict?",
+    code: 'payload = {}\nif payload:\n    print("has data")\nelse:\n    print("empty payload")',
+    options: ['"has data"', '"empty payload"', "{}", "Nothing prints"],
+    correctAnswer: 1,
+    explanation: "An empty dictionary is falsy, so the else branch runs.",
+    takeaway: "Empty dicts behave like other empty containers in truthiness checks."
+  },
+  {
+    id: "read-list-index-output",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "First tool item",
+    difficulty: "easy",
+    tags: ["lists", "tool-output", "safe-access"],
+    prompt: "What does this print?",
+    code: 'items = ["search", "fetch", "rank"]\nprint(items[0])',
+    options: ['"search"', '"fetch"', "0", "Raises an error"],
+    correctAnswer: 0,
+    explanation: "List indexing starts at 0, so items[0] returns the first element.",
+    takeaway: "Keep list indexing straight when reading tool outputs or eval rows."
+  },
+  {
+    id: "read-env-var-guardrail",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "Missing API key check",
+    difficulty: "easy",
+    tags: ["env", "guardrails", "truthiness"],
+    prompt: "What prints if the key is missing and `api_key` is None?",
+    code: 'api_key = None\nif not api_key:\n    print("missing key")',
+    options: ['"missing key"', "None", "Nothing prints", "Raises TypeError"],
+    correctAnswer: 0,
+    explanation: "None is falsy, so `not api_key` is True.",
+    takeaway: "Environment variable guardrails often start with a simple truthiness check."
+  },
+  {
+    id: "read-required-key-check-bug",
+    mode: "read",
+    type: "multiple_choice_bug",
+    title: "Broken required key check",
+    difficulty: "medium",
+    tags: ["validation", "dict", "structured-output"],
+    prompt: "What is the bug in this required-key validation?",
+    code: 'result = {"answer": "ok"}\nif "answer" and "confidence" in result:\n    print("valid")',
+    options: [
+      "It only truly checks whether confidence is in result.",
+      "Python cannot use and inside if statements.",
+      "The answer key should be checked with get() only.",
+      "in works only on lists, not dictionaries."
+    ],
+    correctAnswer: 0,
+    explanation: "The string `'answer'` is always truthy, so the condition effectively becomes `if \"confidence\" in result`.",
+    takeaway: "Be careful with chained boolean expressions around `in` checks."
+  },
+  {
+    id: "read-safe-nested-get",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "Nested payload fallback",
+    difficulty: "hard",
+    tags: ["safe-access", "tool-output", "dict"],
+    prompt: "What prints when the payload key is missing?",
+    code: 'tool_result = {}\nitems = tool_result.get("payload", {}).get("items", [])\nprint(items)',
+    options: ["{}", "None", "[]", "Raises KeyError"],
+    correctAnswer: 2,
+    explanation: "The chained get() calls return the empty-list default when payload or items is missing.",
+    takeaway: "Nested `get()` calls are a practical static-safe pattern for tool outputs."
+  },
+  {
+    id: "read-retry-count-loop",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "Count retries",
+    difficulty: "medium",
+    tags: ["loops", "counting", "agents"],
+    prompt: "What does this print?",
+    code: 'retries = [1, 1, 1]\ntotal = 0\nfor retry in retries:\n    total += retry\nprint(total)',
+    options: ["1", "2", "3", "Raises an error"],
+    correctAnswer: 2,
+    explanation: "The loop adds 1 three times, so total ends at 3.",
+    takeaway: "Many agent and eval metrics are just careful small counting loops."
+  },
+  {
+    id: "read-refusal-best-condition",
+    mode: "read",
+    type: "multiple_choice_best_fix",
+    title: "Normalize refusal labels",
+    difficulty: "hard",
+    tags: ["guardrails", "strings", "normalization"],
+    prompt: "Which condition is safest if model labels may contain uppercase letters or spaces?",
+    code: 'label = " Refuse "',
+    options: [
+      'if label.strip().lower() == "refuse":',
+      'if label == "refuse":',
+      'if label.lower() == " Refuse ":',
+      'if "refuse" == label.upper():'
+    ],
+    correctAnswer: 0,
+    explanation: "strip() removes surrounding spaces and lower() normalizes casing before comparison.",
+    takeaway: "Normalize model-produced strings before applying guardrail logic."
+  },
+  {
+    id: "read-implicit-none-return",
+    mode: "read",
+    type: "multiple_choice_output",
+    title: "Implicit None return",
+    difficulty: "medium",
+    tags: ["functions", "returns", "none"],
+    prompt: "What prints here?",
+    code: 'def parse_flag(text):\n    if text == "safe":\n        return True\n\nprint(parse_flag("other"))',
+    options: ["True", "False", "None", "Raises an error"],
+    correctAnswer: 2,
+    explanation: "If the condition is not met, the function falls off the end and returns None implicitly.",
+    takeaway: "Missing return paths often become None, whether you meant them to or not."
+  },
+  {
+    id: "debug-json-loads-patch",
+    mode: "debug",
+    type: "one_line_patch",
+    title: "Use the string parser",
+    difficulty: "easy",
+    tags: ["json", "parsing", "structured-output"],
+    prompt: "Replace the broken line so a JSON string is parsed correctly.",
+    code: 'raw = \'{"label": "safe"}\'\n# replace the next line\ndata = json.load(raw)',
+    acceptedAnswers: [
+      "data = json.loads(raw)"
+    ],
+    explanation: "json.loads() parses a JSON string already in memory.",
+    takeaway: "Use `loads` for strings and `load` for file objects."
+  },
+  {
+    id: "debug-optional-score-keyerror",
+    mode: "debug",
+    type: "multiple_choice_best_fix",
+    title: "Optional score field",
+    difficulty: "easy",
+    tags: ["dict", "optional-fields", "safe-access"],
+    prompt: "The score field is optional. Which line is the safest fix?",
+    code: 'result = {"label": "pass"}\nscore = result["score"]',
+    options: [
+      'score = result.get("score", 0)',
+      'score = result["score"] or 0',
+      'score = result.score',
+      'score = get(score, 0)'
+    ],
+    correctAnswer: 0,
+    explanation: "get() with a default keeps the flow safe when score is absent.",
+    takeaway: "Optional output fields should not crash the pipeline."
+  },
+  {
+    id: "debug-score-none-check",
+    mode: "debug",
+    type: "one_line_patch",
+    title: "Preserve a valid zero score",
+    difficulty: "medium",
+    tags: ["truthiness", "none", "evals"],
+    prompt: "Replace the broken line so 0 counts as a real score and only None is treated as missing.",
+    code: 'score = 0\n# replace the next line\nif not score:\n    print("missing")',
+    acceptedAnswers: [
+      "if score is None:"
+    ],
+    explanation: "A truthiness check wrongly treats 0 as missing. `is None` targets only the absent case and is the preferred style here.",
+    takeaway: "When 0 is valid, use an explicit None check."
+  },
+  {
+    id: "debug-message-list-fix",
+    mode: "debug",
+    type: "multiple_choice_best_fix",
+    title: "Read the first message content",
+    difficulty: "hard",
+    tags: ["lists", "dict", "api-response"],
+    prompt: "messages is a list of dicts. Which line correctly reads the first content field?",
+    code: 'messages = [{"role": "assistant", "content": "done"}]',
+    options: [
+      'content = messages[0]["content"]',
+      'content = messages["content"]',
+      'content = messages.content[0]',
+      'content = messages.get("content")'
+    ],
+    correctAnswer: 0,
+    explanation: "The outer layer is a list, so you index into it before accessing the dict key.",
+    takeaway: "Track whether you are holding a list or dict at every parsing layer."
+  },
+  {
+    id: "debug-explicit-return-none-patch",
+    mode: "debug",
+    type: "one_line_patch",
+    title: "Make the fallback explicit",
+    difficulty: "easy",
+    tags: ["functions", "returns", "none"],
+    prompt: "Add the missing fallback line for the helper below.",
+    code: 'def get_label(result):\n    if "label" in result:\n        return result["label"]\n    # replace this line',
+    acceptedAnswers: [
+      "return None"
+    ],
+    explanation: "An explicit fallback return makes the function easier to reason about.",
+    takeaway: "Explicit None returns make helper behavior clearer."
+  },
+  {
+    id: "debug-required-key-condition-bug",
+    mode: "debug",
+    type: "multiple_choice_bug",
+    title: "Broken condition for required keys",
+    difficulty: "medium",
+    tags: ["validation", "conditionals", "structured-output"],
+    prompt: "What is wrong with this validation?",
+    code: 'if "answer" and "confidence" in result:\n    print("valid")',
+    options: [
+      "It effectively checks only the confidence key.",
+      "It is checking too many keys at once.",
+      "and cannot be used with strings.",
+      "result must be a list for this syntax."
+    ],
+    correctAnswer: 0,
+    explanation: "Because `'answer'` is truthy, the condition collapses to checking only `'confidence' in result`.",
+    takeaway: "Repeat the membership check for each required key or use all(...)."
+  },
+  {
+    id: "debug-api-key-patch",
+    mode: "debug",
+    type: "one_line_patch",
+    title: "Guard a missing API key",
+    difficulty: "easy",
+    tags: ["env", "guardrails", "truthiness"],
+    prompt: "Replace the broken line with a simple missing-key guardrail.",
+    code: 'api_key = None\n# replace the next line\nif api_key == "":\n    raise ValueError("missing key")',
+    acceptedAnswers: [
+      "if not api_key:",
+      "if api_key is None:"
+    ],
+    explanation: "A missing env var often arrives as None, and an empty string should usually count as missing too. `if not api_key:` covers both.",
+    takeaway: "Guard both None and empty-string cases when validating env vars."
+  },
+  {
+    id: "debug-json-try-output",
+    mode: "debug",
+    type: "multiple_choice_output",
+    title: "Malformed JSON fallback result",
+    difficulty: "medium",
+    tags: ["json", "try-except", "guardrails"],
+    prompt: "What prints here?",
+    code: 'import json\n\nraw = "{bad}"\ntry:\n    data = json.loads(raw)\nexcept json.JSONDecodeError:\n    data = {"status": "invalid_json"}\n\nprint(data["status"])',
+    options: ['"invalid_json"', '"bad"', "None", "Raises an error"],
+    correctAnswer: 0,
+    explanation: "The malformed JSON triggers the except block, which sets the fallback status.",
+    takeaway: "A targeted except block can keep the rest of the flow deterministic."
+  },
+  {
+    id: "debug-nested-tool-items-patch",
+    mode: "debug",
+    type: "one_line_patch",
+    title: "Safely read nested tool items",
+    difficulty: "medium",
+    tags: ["tool-output", "safe-access", "dict"],
+    prompt: "Replace the broken line so missing payload or items falls back to an empty list.",
+    code: 'tool_result = {}\n# replace the next line\nitems = tool_result["payload"]["items"]',
+    acceptedAnswers: [
+      'items = tool_result.get("payload", {}).get("items", [])',
+      "items = tool_result.get('payload', {}).get('items', [])"
+    ],
+    explanation: "The nested get() chain avoids crashing on either missing key.",
+    takeaway: "Nested defaults are one of the most useful small guardrails in AI plumbing."
+  },
+  {
+    id: "debug-refusal-normalization-fix",
+    mode: "debug",
+    type: "multiple_choice_best_fix",
+    title: "Safer refusal normalization",
+    difficulty: "hard",
+    tags: ["guardrails", "strings", "normalization"],
+    prompt: "Which condition is best if labels may come back with extra spaces or uppercase letters?",
+    code: 'label = " Refuse "',
+    options: [
+      'if label.strip().lower() == "refuse":',
+      'if label == "refuse":',
+      'if label.lower() == "refuse":',
+      'if label.strip() == "Refuse":'
+    ],
+    correctAnswer: 0,
+    explanation: "The safest option removes surrounding whitespace and normalizes the case before comparing.",
+    takeaway: "Normalize first, then compare."
+  },
+  {
+    id: "debug-count-retries-patch",
+    mode: "debug",
+    type: "one_line_patch",
+    title: "Increment the retry counter",
+    difficulty: "easy",
+    tags: ["loops", "counting", "agents"],
+    prompt: "Replace the broken line so each retry increments the total by 1.",
+    code: 'total = 0\nfor retry in [1, 1, 1]:\n    # replace the next line\n    total =+ 1',
+    acceptedAnswers: [
+      "total += 1"
+    ],
+    explanation: "`=+` assigns positive one instead of incrementing. `+=` is the correct operator.",
+    takeaway: "Tiny operator slips can silently change loop behavior."
+  },
+  {
+    id: "patch-config-threshold-default",
+    mode: "patch",
+    type: "one_line_patch",
+    title: "Patch a config default",
+    difficulty: "easy",
+    tags: ["config", "safe-access", "dict"],
+    prompt: "Replace the broken line so threshold falls back to 0.7 when missing.",
+    code: 'config = {"max_retries": 2}\n# replace the next line\nthreshold = config["threshold"]',
+    acceptedAnswers: [
+      'threshold = config.get("threshold", 0.7)',
+      "threshold = config.get('threshold', 0.7)"
+    ],
+    explanation: "Optional config values should usually have a safe default rather than crashing.",
+    takeaway: "Defaults make config-based pipelines more robust."
+  },
+  {
+    id: "patch-missing-items-retry",
+    mode: "patch",
+    type: "two_line_patch",
+    title: "Retry on missing tool items",
+    difficulty: "medium",
+    tags: ["tool-output", "guardrails", "validation"],
+    prompt: "Replace the comment with a two-line patch that retries when items is empty.",
+    code: 'items = []\n# replace this comment\nreturn {"status": "ok"}',
+    acceptedAnswers: [
+      'if not items:\n    return {"status": "retry"}',
+      "if not items:\n    return {'status': 'retry'}"
+    ],
+    explanation: "An empty list should trigger the retry branch before the success return.",
+    takeaway: "Simple empty-list guardrails prevent downstream assumptions from breaking."
+  },
+  {
+    id: "patch-safe-strip-none",
+    mode: "patch",
+    type: "one_line_patch",
+    title: "Patch safe text cleanup",
+    difficulty: "medium",
+    tags: ["none", "strings", "guardrails"],
+    prompt: "Replace the broken line so missing text becomes an empty string before stripping.",
+    code: 'text = None\n# replace the next line\nclean = text.strip()',
+    acceptedAnswers: [
+      'clean = (text or "").strip()',
+      "clean = (text or '').strip()"
+    ],
+    explanation: "Using `text or \"\"` protects the strip() call when the value is None.",
+    takeaway: "Guard a possibly missing string before calling string methods on it."
+  },
+  {
+    id: "patch-score-none-validation",
+    mode: "patch",
+    type: "two_line_patch",
+    title: "Validate a missing score without rejecting zero",
+    difficulty: "hard",
+    tags: ["none", "validation", "evals"],
+    prompt: "Replace the comment with a two-line patch that marks the row invalid only when score is None.",
+    code: 'score = 0\n# replace this comment\nreturn {"status": "ok"}',
+    acceptedAnswers: [
+      'if score is None:\n    return {"status": "invalid"}',
+      "if score is None:\n    return {'status': 'invalid'}"
+    ],
+    explanation: "This preserves a valid score of 0 while still guarding the missing-value case with the clearest check.",
+    takeaway: "When 0 is meaningful, avoid truthiness and validate None directly."
   }
 ];
