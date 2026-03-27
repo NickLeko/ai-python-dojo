@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Python Dojo</title>
+  <meta name="description" content="Short reps for Python fluency in AI workflows, agents, evals, and guardrails.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand-button nav-link" data-screen="home">
+        <span class="brand-kicker">AI Python Dojo</span>
+        <span class="brand-subtitle">Short reps for AI workflows, agents, evals, and guardrails.</span>
+      </button>
+      <nav class="topbar-nav" aria-label="Primary">
+        <button class="nav-link" data-screen="modes">Practice</button>
+        <button class="nav-link" data-screen="stats">Progress</button>
+        <button class="nav-link" data-screen="help">Help</button>
+      </nav>
+    </header>
+
+    <main class="main-content">
+      <section id="screen-home" class="screen active" aria-labelledby="home-title">
+        <div class="hero card">
+          <div class="hero-copy">
+            <p class="eyebrow">Python fluency for AI builders</p>
+            <div class="hero-spark-row" aria-hidden="true">
+              <span class="spark-chip">json</span>
+              <span class="spark-chip">guardrails</span>
+              <span class="spark-chip">evals</span>
+              <span class="spark-chip">tools</span>
+            </div>
+            <h1 id="home-title">Read code faster. Spot bugs sooner.</h1>
+            <p class="hero-subhead">Patch tiny failures with confidence.</p>
+            <p class="hero-text">
+              Train on compact Python reps pulled from the world of model outputs, eval loops, tool calls,
+              structured data, and guardrails. No LeetCode. No setup pain. Just practical short-session reps.
+            </p>
+            <div class="hero-actions">
+              <button class="primary-button nav-link" data-screen="modes">Start practicing</button>
+              <button class="secondary-button nav-link" data-screen="stats">View progress</button>
+            </div>
+            <div class="cta-mascot-row" aria-hidden="true">
+              <div class="cta-mascot dojo-sidekick">
+                <span class="char-head"></span>
+                <span class="char-body"></span>
+              </div>
+              <div class="cta-copy">
+                <p class="crew-caption">Tiny reps. Clean fixes. Builder energy.</p>
+                <div class="cta-chip-row">
+                  <span class="micro-chip">25 handcrafted reps</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hero-panel">
+            <div class="mini-stat">
+              <span class="mini-label">Practice shape</span>
+              <strong>Read / Debug / Patch</strong>
+              <p class="mini-stat-copy">2-10 minute reps built for short sessions and repeat practice.</p>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-label">Focus</span>
+              <strong>AI pipelines, evals, safe parsing</strong>
+            </div>
+            <div class="hero-orbit" aria-hidden="true">
+              <span class="orbit-node orbit-node-a">json</span>
+              <span class="orbit-node orbit-node-b">eval</span>
+              <span class="orbit-node orbit-node-c">safe</span>
+              <div class="dojo-stage">
+                <div class="stage-ring"></div>
+                <div class="stage-character sensei-bot">
+                  <span class="char-head"></span>
+                  <span class="char-body"></span>
+                </div>
+                <div class="stage-character snake-student">
+                  <span class="char-head"></span>
+                  <span class="char-body"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section id="screen-modes" class="screen" aria-labelledby="modes-title">
+        <div class="section-header">
+          <p class="eyebrow">Pick your practice slice</p>
+          <h2 id="modes-title">Mode selection</h2>
+        </div>
+
+        <div class="card filters-card">
+          <div class="filter-group">
+            <label for="mode-filter">Mode</label>
+            <select id="mode-filter">
+              <option value="all">All modes</option>
+              <option value="read">Read Mode</option>
+              <option value="debug">Debug Mode</option>
+              <option value="patch">Patch Mode</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="source-filter">Challenge set</label>
+            <select id="source-filter">
+              <option value="all">All challenges</option>
+              <option value="unanswered">Unanswered only</option>
+              <option value="missed">Missed only</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="difficulty-filter">Difficulty</label>
+            <select id="difficulty-filter">
+              <option value="all">All levels</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="tag-filter">Tag</label>
+            <select id="tag-filter">
+              <option value="all">All tags</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mode-grid">
+          <article class="card mode-card">
+            <div>
+              <p class="mode-kicker">Read Mode</p>
+              <h3>What does this code do?</h3>
+              <p>Output, return values, bug spotting, and safest-pattern questions for AI-flavored snippets.</p>
+            </div>
+            <div class="mode-card-meta">
+              <span class="mini-badge" id="mode-count-read">0 reps</span>
+              <span class="mini-badge" id="mode-missed-read">0 missed</span>
+            </div>
+            <button class="primary-button start-mode-button" data-mode="read">Practice Read</button>
+          </article>
+          <article class="card mode-card">
+            <div>
+              <p class="mode-kicker">Debug Mode</p>
+              <h3>Fix fast, not big</h3>
+              <p>Short debugging reps focused on syntax slips, wrong conditions, parsing mistakes, and loop bugs.</p>
+            </div>
+            <div class="mode-card-meta">
+              <span class="mini-badge" id="mode-count-debug">0 reps</span>
+              <span class="mini-badge" id="mode-missed-debug">0 missed</span>
+            </div>
+            <button class="primary-button start-mode-button" data-mode="debug">Practice Debug</button>
+          </article>
+          <article class="card mode-card">
+            <div>
+              <p class="mode-kicker">Patch Mode</p>
+              <h3>Add the missing guardrail</h3>
+              <p>Minimal patches for safer access, validation, refusal handling, and malformed output protection.</p>
+            </div>
+            <div class="mode-card-meta">
+              <span class="mini-badge" id="mode-count-patch">0 reps</span>
+              <span class="mini-badge" id="mode-missed-patch">0 missed</span>
+            </div>
+            <button class="primary-button start-mode-button" data-mode="patch">Practice Patch</button>
+          </article>
+        </div>
+
+        <div class="preset-row">
+          <button class="secondary-button preset-button" data-preset="quick5">Quick 5</button>
+          <button class="secondary-button preset-button" data-preset="missed">Missed only</button>
+          <button class="secondary-button preset-button" data-preset="patch">Patch sprint</button>
+          <button class="secondary-button preset-button" data-preset="json">JSON reps</button>
+        </div>
+
+        <div class="card quick-play-card">
+          <div>
+            <h3>Random rep</h3>
+            <p>Jump into the next available challenge using your filters.</p>
+          </div>
+          <button id="start-random-button" class="secondary-button">Start random challenge</button>
+        </div>
+      </section>
+
+      <section id="screen-practice" class="screen" aria-labelledby="practice-title">
+        <div class="practice-shell">
+          <div class="practice-topbar card">
+            <div>
+              <p class="eyebrow">Current challenge</p>
+              <h2 id="practice-title">Challenge</h2>
+              <p id="practice-position" class="practice-position">Challenge 1 of 1</p>
+            </div>
+            <div class="session-badges">
+              <span class="badge" id="practice-mode-badge">Mode</span>
+              <span class="badge" id="practice-difficulty-badge">Difficulty</span>
+            </div>
+          </div>
+
+          <div class="progress-card card">
+            <div class="progress-meta">
+              <span id="session-progress-label">Session progress</span>
+              <span id="session-progress-value">0%</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <div id="session-progress-fill" class="progress-fill"></div>
+            </div>
+          </div>
+
+          <section id="session-complete-card" class="card session-complete-card" hidden>
+            <div class="session-complete-badge" aria-hidden="true">Level Up</div>
+            <h3 id="session-complete-title">Session complete</h3>
+            <p id="session-complete-copy" class="session-complete-copy"></p>
+            <div class="session-complete-stats">
+              <div class="session-complete-stat">
+                <span class="mini-label">Accuracy</span>
+                <strong id="session-complete-accuracy">0%</strong>
+              </div>
+              <div class="session-complete-stat">
+                <span class="mini-label">Correct</span>
+                <strong id="session-complete-correct">0/0</strong>
+              </div>
+              <div class="session-complete-stat">
+                <span class="mini-label">XP earned</span>
+                <strong id="session-complete-xp">0</strong>
+              </div>
+            </div>
+            <div class="challenge-actions">
+              <button id="session-replay-button" class="primary-button">Run another set</button>
+              <button id="session-stats-button" class="secondary-button">View progress</button>
+            </div>
+          </section>
+
+          <article class="card challenge-card">
+            <div class="challenge-meta">
+              <div>
+                <p class="challenge-label">Prompt</p>
+                <h3 id="challenge-title">Challenge title</h3>
+                <p id="challenge-prompt" class="challenge-prompt"></p>
+              </div>
+              <div id="challenge-tags" class="tag-row" aria-label="Skill tags"></div>
+            </div>
+
+            <div class="code-shell">
+              <div class="code-shell-top">
+                <span class="code-shell-label">Python snippet</span>
+              </div>
+              <pre class="code-block"><code id="challenge-code"></code></pre>
+            </div>
+
+            <div class="answer-shell">
+              <div class="answer-shell-top">
+                <span class="code-shell-label">Your answer</span>
+              </div>
+              <div id="answer-area" class="answer-area"></div>
+            </div>
+
+            <div class="challenge-actions">
+              <button id="submit-answer-button" class="primary-button">Check answer</button>
+              <button id="next-challenge-button" class="secondary-button" hidden>Next challenge</button>
+            </div>
+
+            <div id="feedback-panel" class="feedback-panel" hidden>
+              <p id="feedback-status" class="feedback-status"></p>
+              <pre id="feedback-answer" class="feedback-answer" hidden><code id="feedback-answer-code"></code></pre>
+              <p id="feedback-explanation"></p>
+              <p id="feedback-ai-context" class="feedback-ai-context"></p>
+              <p id="feedback-takeaway" class="takeaway"></p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="screen-stats" class="screen" aria-labelledby="stats-title">
+        <div class="section-header">
+          <p class="eyebrow">Your dojo board</p>
+          <h2 id="stats-title">Progress and stats</h2>
+        </div>
+
+        <div class="stats-grid">
+          <article class="card stat-card">
+            <span class="mini-label">Total XP</span>
+            <strong id="stat-xp">0</strong>
+          </article>
+          <article class="card stat-card">
+            <span class="mini-label">Accuracy</span>
+            <strong id="stat-accuracy">0%</strong>
+          </article>
+          <article class="card stat-card">
+            <span class="mini-label">Current streak</span>
+            <strong id="stat-streak">0</strong>
+          </article>
+          <article class="card stat-card">
+            <span class="mini-label">Best streak</span>
+            <strong id="stat-best-streak">0</strong>
+          </article>
+        </div>
+
+        <div class="stats-detail-grid">
+          <article class="card detail-card">
+            <h3>Overall</h3>
+            <div class="detail-list" id="overall-detail-list"></div>
+          </article>
+          <article class="card detail-card">
+            <h3>By mode</h3>
+            <div class="detail-list" id="mode-detail-list"></div>
+          </article>
+          <article class="card detail-card">
+            <h3>Top tags practiced</h3>
+            <div class="detail-list" id="tag-detail-list"></div>
+          </article>
+        </div>
+
+        <div class="card reset-card">
+          <div>
+            <h3>Reset local progress</h3>
+            <p>Clears XP, streaks, and challenge history stored in your browser on this device.</p>
+          </div>
+          <button id="reset-progress-button" class="danger-button">Reset progress</button>
+        </div>
+      </section>
+
+      <section id="screen-help" class="screen" aria-labelledby="help-title">
+        <div class="section-header">
+          <p class="eyebrow">How it works</p>
+          <h2 id="help-title">Quick help</h2>
+        </div>
+        <div class="help-grid">
+          <article class="card detail-card">
+            <h3>What this trains</h3>
+            <p>Short Python reps for AI builders working with model outputs, eval rows, tool responses, and guardrails.</p>
+          </article>
+          <article class="card detail-card">
+            <h3>Patch answers</h3>
+            <p>Patch questions use lightweight matching with trimmed whitespace and a small set of accepted answers when needed.</p>
+          </article>
+          <article class="card detail-card">
+            <h3>Keyboard shortcuts</h3>
+            <p>Use keys <strong>1-4</strong> for multiple choice answers, <strong>Enter</strong> to submit, and <strong>N</strong> for next challenge after feedback.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="data/challenges.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
