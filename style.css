@@ -970,6 +970,21 @@ select,
   gap: 10px;
 }
 
+.coaching-grid {
+  margin-top: 20px;
+}
+
+.coaching-card {
+  display: grid;
+  gap: 14px;
+}
+
+.coaching-summary {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .detail-row {
   display: flex;
   justify-content: space-between;

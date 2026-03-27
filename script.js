@@ -17,7 +17,8 @@
     session: {
       queue: [],
       index: 0,
-      limit: null
+      limit: null,
+      preset: null
     },
     currentChallenge: null,
     currentAnswer: null,
@@ -72,6 +73,9 @@
     overallDetailList: document.getElementById("overall-detail-list"),
     modeDetailList: document.getElementById("mode-detail-list"),
     tagDetailList: document.getElementById("tag-detail-list"),
+    coachingSummary: document.getElementById("coaching-summary"),
+    coachingDetailList: document.getElementById("coaching-detail-list"),
+    recommendedDrillButton: document.getElementById("recommended-drill-button"),
     modeCountRead: document.getElementById("mode-count-read"),
     modeCountDebug: document.getElementById("mode-count-debug"),
     modeCountPatch: document.getElementById("mode-count-patch"),
@@ -102,6 +106,7 @@
         elements.modeFilter.value = button.dataset.mode;
         state.filters.mode = button.dataset.mode;
         state.session.limit = null;
+        state.session.preset = null;
         startPractice(true);
       });
     });
@@ -122,6 +127,7 @@
 
     elements.startRandomButton.addEventListener("click", () => {
       state.session.limit = null;
+      state.session.preset = null;
       startPractice(true);
     });
     elements.submitAnswerButton.addEventListener("click", submitAnswer);
@@ -139,6 +145,7 @@
       startPractice(true);
     });
     elements.sessionStatsButton.addEventListener("click", () => showScreen("stats"));
+    elements.recommendedDrillButton.addEventListener("click", startRecommendedDrill);
 
     document.addEventListener("keydown", handleKeyboardShortcuts);
   }
@@ -216,8 +223,8 @@
 
     const unseen = filtered.filter((challenge) => !state.progress.completedIds.includes(challenge.id));
     const pool = unseen.length ? unseen : filtered;
-    const shuffled = shuffle([...pool]);
-    return state.session.limit ? shuffled.slice(0, state.session.limit) : shuffled;
+    const targetSize = state.session.limit || pool.length;
+    return buildSmartQueue(pool, targetSize);
   }
 
   function renderChallenge(challenge) {
@@ -452,6 +459,30 @@
       elements.tagDetailList,
       topTags.length ? topTags : [["No tag data yet", "Practice a few reps to populate this."]]
     );
+
+    renderCoaching(progress);
+  }
+
+  function renderCoaching(progress) {
+    const weakest = getWeakestTags(progress.tagStats);
+    const strongestMode = getStrongestMode(progress.modeStats);
+
+    if (!weakest.length) {
+      elements.coachingSummary.textContent = "Practice a few more reps and I’ll start surfacing your weakest tags and best next drill.";
+      renderDetailList(elements.coachingDetailList, [
+        ["Recommended next drill", "Any mixed session"],
+        ["Strongest mode", strongestMode || "Not enough data"]
+      ]);
+      return;
+    }
+
+    const topWeak = weakest[0];
+    elements.coachingSummary.textContent = `Your biggest coaching signal right now is ${topWeak.tag}. A focused drill there should give the fastest improvement.`;
+    renderDetailList(elements.coachingDetailList, [
+      ["Most missed tag", `${topWeak.tag} (${topWeak.accuracy}% accuracy)`],
+      ["Recommended next drill", `${topWeak.tag} reps`],
+      ["Strongest mode", strongestMode || "Not enough data"]
+    ]);
   }
 
   function renderDetailList(target, rows) {
@@ -514,16 +545,37 @@
 
   function applyPreset(preset) {
     state.session.limit = null;
+    state.session.preset = preset;
 
     if (preset === "quick5") {
       state.filters = { mode: "all", source: "all", difficulty: "all", tag: "all" };
       state.session.limit = 5;
+    } else if (preset === "weak") {
+      state.filters = { mode: "all", source: "all", difficulty: "all", tag: "all" };
+      state.session.limit = 6;
     } else if (preset === "missed") {
       state.filters = { mode: "all", source: "missed", difficulty: "all", tag: "all" };
     } else if (preset === "patch") {
       state.filters = { mode: "patch", source: "all", difficulty: "all", tag: "all" };
     } else if (preset === "json") {
       state.filters = { mode: "all", source: "all", difficulty: "all", tag: "json" };
+    }
+
+    syncFilterInputs();
+    renderModeCards();
+    startPractice(true);
+  }
+
+  function startRecommendedDrill() {
+    const weakest = getWeakestTags(state.progress.tagStats);
+    if (!weakest.length) {
+      state.filters = { mode: "all", source: "all", difficulty: "all", tag: "all" };
+      state.session.limit = 5;
+      state.session.preset = "quick5";
+    } else {
+      state.filters = { mode: "all", source: "all", difficulty: "all", tag: weakest[0].tag };
+      state.session.limit = 6;
+      state.session.preset = "weak";
     }
 
     syncFilterInputs();
@@ -541,6 +593,129 @@
   function buildAiContext(challenge) {
     const topTags = challenge.tags.slice(0, 2).join(" + ");
     return `Why this matters in AI workflows: this pattern shows up in ${topTags || "common"} pipeline code where a tiny Python mistake can break parsing, validation, or control flow.`;
+  }
+
+  function getWeakestTags(tagStats) {
+    return Object.entries(tagStats)
+      .filter(([, stats]) => stats.answered >= 2)
+      .map(([tag, stats]) => ({
+        tag,
+        accuracy: calcAccuracy(stats.correct, stats.answered),
+        answered: stats.answered
+      }))
+      .sort((a, b) => {
+        if (a.accuracy !== b.accuracy) {
+          return a.accuracy - b.accuracy;
+        }
+        return b.answered - a.answered;
+      });
+  }
+
+  function getStrongestMode(modeStats) {
+    const ranked = Object.entries(modeStats)
+      .filter(([, stats]) => stats.answered > 0)
+      .map(([mode, stats]) => ({
+        label: formatMode(mode),
+        accuracy: calcAccuracy(stats.correct, stats.answered)
+      }))
+      .sort((a, b) => b.accuracy - a.accuracy);
+
+    return ranked.length ? `${ranked[0].label} (${ranked[0].accuracy}%)` : "";
+  }
+
+  function buildSmartQueue(pool, targetSize) {
+    const remaining = [...pool];
+    const queue = [];
+
+    while (remaining.length && queue.length < targetSize) {
+      const previous = queue[queue.length - 1] || null;
+      const weighted = remaining.map((challenge) => ({
+        challenge,
+        weight: scoreChallenge(challenge, previous)
+      }));
+
+      const picked = pickWeighted(weighted);
+      queue.push(picked);
+      removeChallengeById(remaining, picked.id);
+    }
+
+    return queue;
+  }
+
+  function scoreChallenge(challenge, previous) {
+    let weight = 1;
+    const tagStats = challenge.tags.map((tag) => state.progress.tagStats[tag]).filter(Boolean);
+    const missed = state.progress.missedIds.includes(challenge.id);
+
+    if (missed) {
+      weight += 5;
+    }
+
+    if (!state.progress.completedIds.includes(challenge.id)) {
+      weight += 2;
+    }
+
+    tagStats.forEach((stats) => {
+      const misses = stats.answered - stats.correct;
+      if (misses > 0) {
+        weight += Math.min(3, misses);
+      }
+    });
+
+    if (state.session.preset === "weak") {
+      weight += weakSpotBonus(challenge);
+    }
+
+    if (previous) {
+      if (previous.mode === challenge.mode) {
+        weight -= 0.35;
+      }
+      const sharedTags = challenge.tags.filter((tag) => previous.tags.includes(tag)).length;
+      weight -= sharedTags * 0.45;
+      if (previous.type === challenge.type) {
+        weight -= 0.2;
+      }
+    }
+
+    return Math.max(0.2, weight);
+  }
+
+  function weakSpotBonus(challenge) {
+    return challenge.tags.reduce((bonus, tag) => {
+      const stats = state.progress.tagStats[tag];
+      if (!stats || !stats.answered) {
+        return bonus;
+      }
+      const accuracy = stats.correct / stats.answered;
+      if (accuracy < 0.5) {
+        return bonus + 3;
+      }
+      if (accuracy < 0.75) {
+        return bonus + 1.5;
+      }
+      return bonus;
+    }, 0);
+  }
+
+  function pickWeighted(weighted) {
+    const total = weighted.reduce((sum, item) => sum + item.weight, 0);
+    let threshold = Math.random() * total;
+
+    for (const item of weighted) {
+      threshold -= item.weight;
+      if (threshold <= 0) {
+        return item.challenge;
+      }
+    }
+
+    return weighted[weighted.length - 1].challenge;
+  }
+
+  function removeChallengeById(challenges, id) {
+    const index = challenges.findIndex((challenge) => challenge.id === id);
+    if (index >= 0) {
+      challenges.splice(index, 1);
+    }
   }
 
   function defaultProgress() {
@@ -601,7 +776,21 @@
       .replace(/\r\n/g, "\n")
       .replace(/[“”]/g, '"')
       .replace(/[‘’]/g, "'")
+      .replace(/^\((.*)\)$/s, "$1")
+      .replace(/\(\s*([A-Za-z_][A-Za-z0-9_]*)\s+or\s+(['"]{2})\s*\)\.strip\(\)/g, "($1 or $2).strip()")
+      .replace(/\s*=\s*/g, " = ")
+      .replace(/\s*:\s*/g, ":")
+      .replace(/\s*,\s*/g, ", ")
+      .replace(/\{\s+/g, "{")
+      .replace(/\s+\}/g, "}")
+      .replace(/\[\s+/g, "[")
+      .replace(/\s+\]/g, "]")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")")
+      .replace(/"([A-Za-z_][A-Za-z0-9_]*)"/g, "'$1'")
+      .replace(/([A-Za-z_][A-Za-z0-9_]*)\s*==\s*None/g, "$1 is None")
       .replace(/[ \t]+\n/g, "\n")
+      .replace(/[ \t]{2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n");
   }
 
