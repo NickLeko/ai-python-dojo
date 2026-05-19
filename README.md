@@ -121,7 +121,7 @@ Since the app uses only static files, it works cleanly on GitHub Pages without a
 
 ## Extending the challenge bank
 
-Challenges live in [`data/challenges.js`](/Users/nicholasleko/projects/Python%20Dojo/data/challenges.js). Each challenge has a small schema that is easy to edit manually:
+Challenges live in [`data/challenges.js`](data/challenges.js). Each challenge has a small schema that is easy to edit manually:
 
 - `id`
 - `mode`
